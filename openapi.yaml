@@ -1,0 +1,300 @@
+openapi: 3.0.3
+info:
+  title: API de conversión de temperatura
+  version: 1.0.0
+  description: Convierte temperaturas de grados Celsius a Fahrenheit.
+paths:
+  /api/v1/celsius-a-fahrenheit:
+    get:
+      deprecated: true
+      operationId: convertirCelsiusAFahrenheit
+      summary: Convierte Celsius a Fahrenheit
+      parameters:
+        - name: valor
+          in: query
+          required: true
+          description: Temperatura en grados Celsius.
+          schema:
+            type: number
+            format: double
+          example: 36.5
+      responses:
+        "200":
+          description: Conversión realizada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversionResponse"
+              example:
+                celsius: 36.5
+                fahrenheit: 97.7
+        "400":
+          description: Falta el parámetro o no contiene un número válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  codigo: VALOR_INVALIDO
+                  mensaje: El valor debe ser un número válido
+        "422":
+          description: La temperatura es inferior al cero absoluto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  codigo: BAJO_CERO_ABSOLUTO
+                  mensaje: El valor no puede ser inferior a -273.15 ºC
+  /api/v1/fahrenheit-a-celsius:
+    get:
+      deprecated: true
+      operationId: convertirFahrenheitACelsius
+      summary: Convierte Fahrenheit a Celsius
+      parameters:
+        - name: valor
+          in: query
+          required: true
+          description: Temperatura en grados Fahrenheit.
+          schema:
+            type: number
+            format: double
+          example: 98.6
+      responses:
+        "200":
+          description: Conversión realizada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FahrenheitToCelsiusResponse"
+              example:
+                fahrenheit: 98.6
+                celsius: 37.0
+        "400":
+          description: Falta el parámetro o no contiene un número válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: La temperatura es inferior al cero absoluto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  codigo: BAJO_CERO_ABSOLUTO
+                  mensaje: El valor no puede ser inferior a -459.67 ºF
+  /api/v2/conversion:
+    get:
+      operationId: convertir
+      summary: Convierte una temperatura entre Celsius, Fahrenheit y Kelvin
+      parameters:
+        - name: valor
+          in: query
+          required: true
+          description: Valor de la temperatura.
+          schema:
+            type: number
+            format: double
+          example: 25
+        - name: desde
+          in: query
+          required: true
+          description: Unidad de origen.
+          schema:
+            $ref: "#/components/schemas/TemperatureUnit"
+          example: C
+        - name: hasta
+          in: query
+          required: true
+          description: Unidad de destino.
+          schema:
+            $ref: "#/components/schemas/TemperatureUnit"
+          example: K
+      responses:
+        "200":
+          description: Conversión realizada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericConversionResponse"
+              example:
+                valor: 25
+                desde: C
+                hasta: K
+                resultado: 298.15
+        "400":
+          description: Falta un parámetro o contiene un valor no válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: La temperatura es inferior al cero absoluto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v2/conversiones:
+    post:
+      operationId: convertirLote
+      summary: Convierte múltiples temperaturas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchConversionRequest"
+            example:
+              conversiones:
+                - valor: 25
+                  desde: C
+                  hasta: F
+                - valor: 300
+                  desde: K
+                  hasta: C
+                - valor: -500
+                  desde: F
+                  hasta: C
+      responses:
+        "200":
+          description: Lote procesado; los errores se informan por elemento.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchConversionResponse"
+        "400":
+          description: El cuerpo no tiene un formato válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: El lote supera el máximo de 100 conversiones.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    ConversionResponse:
+      type: object
+      required:
+        - celsius
+        - fahrenheit
+      properties:
+        celsius:
+          type: number
+          format: double
+        fahrenheit:
+          type: number
+          format: double
+    FahrenheitToCelsiusResponse:
+      type: object
+      required:
+        - fahrenheit
+        - celsius
+      properties:
+        fahrenheit:
+          type: number
+          format: double
+        celsius:
+          type: number
+          format: double
+    GenericConversionResponse:
+      type: object
+      required:
+        - valor
+        - desde
+        - hasta
+        - resultado
+      properties:
+        valor:
+          type: number
+          format: double
+        desde:
+          $ref: "#/components/schemas/TemperatureUnit"
+        hasta:
+          $ref: "#/components/schemas/TemperatureUnit"
+        resultado:
+          type: number
+          format: double
+    TemperatureUnit:
+      type: string
+      enum:
+        - C
+        - F
+        - K
+    ConversionRequest:
+      type: object
+      required:
+        - valor
+        - desde
+        - hasta
+      properties:
+        valor:
+          type: number
+          format: double
+        desde:
+          $ref: "#/components/schemas/TemperatureUnit"
+        hasta:
+          $ref: "#/components/schemas/TemperatureUnit"
+    BatchConversionRequest:
+      type: object
+      required:
+        - conversiones
+      properties:
+        conversiones:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/ConversionRequest"
+    BatchConversionResult:
+      type: object
+      required:
+        - valor
+        - desde
+        - hasta
+      properties:
+        valor:
+          type: number
+          format: double
+        desde:
+          $ref: "#/components/schemas/TemperatureUnit"
+        hasta:
+          $ref: "#/components/schemas/TemperatureUnit"
+        resultado:
+          type: number
+          format: double
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+    BatchConversionResponse:
+      type: object
+      required:
+        - resultados
+      properties:
+        resultados:
+          type: array
+          items:
+            $ref: "#/components/schemas/BatchConversionResult"
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+    ErrorDetail:
+      type: object
+      required:
+        - codigo
+        - mensaje
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
